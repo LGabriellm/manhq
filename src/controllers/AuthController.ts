@@ -2,9 +2,7 @@ import Fastify from "fastify";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.ts";
-
-const JWT_SECRET =
-  process.env.JWT_SECRET || "sua_chave_secreta_super_segura_123";
+import { config } from "../config.ts";
 
 export class AuthController {
   // Rota: POST /register
@@ -74,7 +72,7 @@ export class AuthController {
         role: user.role,
         name: user.name,
       },
-      JWT_SECRET,
+      config.jwtSecret,
       { expiresIn: "7d" }, // Token dura 7 dias
     );
 

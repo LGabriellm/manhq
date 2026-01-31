@@ -7,23 +7,28 @@ import {
 import fastifyMultipart from "@fastify/multipart";
 import { appRoutes } from "./routes.ts";
 import rateLimit from "@fastify/rate-limit";
+import { config } from "./config.ts";
 
-const app = Fastify({ logger: true, bodyLimit: 1048576 * 100 });
+const app = Fastify({ logger: true, bodyLimit: config.bodyLimit });
 
-app.register(fastifyMultipart, { limits: { fileSize: 100 * 1024 * 1024 } }); // Limite de 100MB por arquivo
+app.register(fastifyMultipart, {
+  limits: { fileSize: config.fileUploadLimit },
+}); // Limite de upload configurável
 
-app.register(cors, { origin: true }); // Permite todas as origens (CORS)
+app.register(cors, {
+  origin: config.corsOrigins ?? true,
+}); // Origem configurável via env
 
 app.setValidatorCompiler(validatorCompiler);
 app.setSerializerCompiler(serializerCompiler);
 
-app.register(appRoutes);
-
 app.register(rateLimit, {
-  max: 100, // Máximo de 100 requisições
-  timeWindow: "1 minute", // Por minuto por IP
+  max: config.rateLimit.max, // Máximo de requisições
+  timeWindow: config.rateLimit.timeWindow, // Por IP
   errorResponseBuilder: () => ({ error: "Muitas requisições. Acalme-se." }),
 });
+
+app.register(appRoutes);
 
 app.setErrorHandler((error: any, request, reply) => {
   // Se for erro de validação do Zod
@@ -37,6 +42,10 @@ app.setErrorHandler((error: any, request, reply) => {
   // Se for erro conhecido do Prisma (ex: Registro não encontrado)
   if (error.code === "P2025") {
     return reply.status(404).send({ error: "Registro não encontrado" });
+  }
+
+  if (error.code === "P2002") {
+    return reply.status(409).send({ error: "Conflito de dados" });
   }
 
   // Loga o erro real no servidor para você debugar
