@@ -19,13 +19,21 @@ export async function appRoutes(app: Fastify.FastifyInstance) {
     schema: {
       body: z.object({
         name: z.string().min(3, "Nome muito curto"),
-        email: z.email("E-mail inválido"),
+        email: z.string().email("E-mail inválido"),
         password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
       }),
     },
     handler: authCtrl.register,
   });
-  app.post("/login", authCtrl.login);
+  app.post("/login", {
+    schema: {
+      body: z.object({
+        email: z.string().email("E-mail inválido"),
+        password: z.string().min(1, "Senha é obrigatória"),
+      }),
+    },
+    handler: authCtrl.login,
+  });
   app.get("/", async () => {
     return { status: "Online 🚀" };
   });
@@ -53,19 +61,40 @@ export async function appRoutes(app: Fastify.FastifyInstance) {
     protectedRoutes.get("/read/:id/page/:page", (req, rep) =>
       readerCtrl.getPage(req, rep),
     );
-    protectedRoutes.post("/read/:id/progress", (req, rep) =>
-      readerCtrl.updateProgress(req, rep),
+    protectedRoutes.post(
+      "/read/:id/progress",
+      {
+        schema: {
+          body: z.object({
+            page: z.number().int().nonnegative(),
+          }),
+        },
+      },
+      (req, rep) => readerCtrl.updateProgress(req, rep),
     );
 
     // Administração (Upload e Scan)
     protectedRoutes.post("/upload", (req, rep) =>
       uploadCtrl.uploadFile(req, rep),
     );
+    protectedRoutes.post("/upload/bulk", (req, rep) =>
+      uploadCtrl.uploadBulk(req, rep),
+    );
 
-    protectedRoutes.post("/scan", async (req, reply) => {
-      const { path } = req.body as { path: string };
-      scannerSvc.scanLibrary(path);
-      return { message: "Scan iniciado." };
-    });
+    protectedRoutes.post(
+      "/scan",
+      {
+        schema: {
+          body: z.object({
+            path: z.string().min(1, "Caminho é obrigatório"),
+          }),
+        },
+      },
+      async (req, reply) => {
+        const { path } = req.body as { path: string };
+        scannerSvc.scanLibrary(path);
+        return { message: "Scan iniciado." };
+      },
+    );
   });
 }

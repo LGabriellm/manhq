@@ -164,18 +164,14 @@ export class ScannerService {
     // o banco resolve sem erro.
     const series = await prisma.series.upsert({
       where: {
-        // Assumindo que você criou um índice @@unique([title, libraryId]) no schema.prisma
-        // Se não tiver, use findFirst antes (mas upsert é melhor)
-        id:
-          (
-            await prisma.series.findFirst({
-              where: { title: seriesTitle, libraryId },
-            })
-          )?.id || "new",
+        title_libraryId: {
+          title: seriesTitle,
+          libraryId,
+        },
       },
       create: {
         title: seriesTitle,
-        libraryId: libraryId,
+        libraryId,
         sourceType: "LOCAL",
         folderPath: path.dirname(filePath),
       },
