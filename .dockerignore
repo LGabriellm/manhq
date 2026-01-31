@@ -1,0 +1,8 @@
+node_modules
+dist
+temp
+library_data
+.env
+Dockerfile
+docker-compose.yml
+.git

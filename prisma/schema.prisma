@@ -1,0 +1,171 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// --------------------------------------
+// 1. SISTEMA DE USUÁRIOS E ASSINATURAS
+// --------------------------------------
+
+enum UserRole {
+  ADMIN       // Você (acesso total)
+  SUBSCRIBER  // Usuário pagante
+  FREE        // Usuário gratuito (acesso limitado)
+}
+
+enum SubStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE    // Pagamento atrasado
+  CANCELED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+
+  // Controle de Assinatura
+  role          UserRole  @default(FREE)
+  subStatus     SubStatus @default(INACTIVE)
+  subExpiresAt  DateTime? // Data limite da assinatura atual
+
+  // Segurança
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  maxDevices    Int       @default(3) // Limite de telas simultâneas
+
+  // Relacionamentos
+  readProgress  ReadProgress[]
+  sessions      Session[]
+  favorites     Favorite[]
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  token     String   @unique // Hash do token JWT
+  device    String?  // "Android 14", "Chrome Windows"
+  ip        String?
+
+  lastActive DateTime @default(now())
+  expiresAt  DateTime
+}
+
+// --------------------------------------
+// 2. SISTEMA DE BIBLIOTECA (Core)
+// --------------------------------------
+
+model Library {
+  id        String   @id @default(uuid())
+  name      String   // Ex: "Mangás", "HQs", "Livros Técnicos"
+  path      String   // Caminho físico da pasta raiz: "/data/library/mangas"
+
+  series    Series[]
+
+  createdAt DateTime @default(now())
+}
+
+model Series {
+  id          String   @id @default(uuid())
+  libraryId   String
+  library     Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+
+  // Metadados da Obra
+  title       String
+  description String?
+  coverUrl    String?  // Pode ser "/capas/naruto.jpg" ou "https://img.externa..."
+  author      String?
+  artist      String?
+  status      String?  // "Em Andamento", "Concluído"
+  tags        String?  // Ex: "Ação, Shonen" (separado por vírgula)
+
+  // Controle de Fonte (Local vs Externo)
+  sourceType  String   // "LOCAL" ou "EXTERNAL"
+  provider    String?  // Ex: "mangalivre", "filesystem"
+  externalUrl String?  // URL da página da obra no site fonte
+  folderPath  String?  // Caminho local: "/data/library/mangas/Naruto"
+
+  medias      Media[]
+  favorites   Favorite[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([title])
+  @@unique([title, libraryId])
+}
+
+model Media {
+  id          String   @id @default(uuid())
+  seriesId    String
+  series      Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  // Metadados do Capítulo/Volume
+  title       String   // "Capítulo 1"
+  number      Float    // 1.0, 1.5, 2.0 (Float permite capítulos extras)
+
+  volume      Int?
+  year        Int?
+  isOneShot   Boolean  @default(false)
+
+  // Dados do Arquivo
+  extension   String?  // "cbz", "pdf", "epub"
+  size        BigInt?  // Tamanho em bytes (BigInt para arquivos gigantes)
+  path        String?  // Caminho completo do arquivo
+
+  // Dados Externos
+  externalUrl String?  // Link direto do capítulo
+
+  // Estado
+  isReady     Boolean  @default(true) // Útil se estiver fazendo download em background
+  pageCount   Int      @default(0)
+
+  readProgress ReadProgress[]
+
+  createdAt   DateTime @default(now())
+
+
+  @@index([seriesId, number]) // Garante ordenação rápida
+}
+
+// --------------------------------------
+// 3. DADOS DE USUÁRIO (Progresso)
+// --------------------------------------
+
+model ReadProgress {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mediaId   String
+  media     Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  page      Int      // Página atual
+  finished  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, mediaId]) // Um progresso por usuário por capitulo
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seriesId  String
+  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, seriesId])
+}

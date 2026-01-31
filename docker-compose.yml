@@ -1,0 +1,34 @@
+services:
+  manga-backend:
+    container_name: mangahq-backend
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/dev.db
+      - JWT_SECRET=sua_senha_secreta_aqui_mude_isso
+      # Otimização do Node para o i3
+      - UV_THREADPOOL_SIZE=4
+    volumes:
+      # 1. Persistência do Banco de Dados (SQLite)
+      # Mapeia uma pasta do host para dentro do container
+      - ./prisma/data:/app/data
+
+      # 2. Pasta de Entrada (Onde você joga os arquivos brutos)
+      # TROQUE O CAMINHO DA ESQUERDA PELO SEU CAMINHO NO ZIMAOS
+      - /DATA/MeusMangas:/app/library_scan
+
+      # 3. Pasta de Saída (Onde ficam os CBZ otimizados e Capas)
+      # O sistema gerencia isso
+      - ./library_data:/app/library_data
+
+      # 4. Pasta Temporária (Opcional, mas bom mapear para não encher o container)
+      - ./temp:/app/temp
+
+    # Limite de recursos (Opcional, para não travar o ZimaOS se der louca)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
