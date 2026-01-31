@@ -1,6 +1,7 @@
 services:
   manga-backend:
     container_name: mangahq-backend
+    image: manga-backend:latest
     build: .
     restart: unless-stopped
     init: true

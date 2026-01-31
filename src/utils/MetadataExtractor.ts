@@ -3,7 +3,8 @@ import path from "path";
 import AdmZip from "adm-zip";
 import { createExtractorFromData } from "node-unrar-js";
 import { parseStringPromise } from "xml2js";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
+const PdfParse = new PDFParse({});
 
 // Interface padronizada para o retorno
 export interface ExtractedMetadata {
@@ -109,8 +110,8 @@ export class MetadataExtractor {
   // --- 4. Extração de PDF ---
   private async fromPDF(filePath: string): Promise<ExtractedMetadata | null> {
     const dataBuffer = fs.readFileSync(filePath);
-    const result = await pdfParse(dataBuffer);
-    const info = result.info;
+    const pdfParse = new PDFParse(dataBuffer);
+    const { info } = await pdfParse.getInfo();
 
     if (!info) return null;
 

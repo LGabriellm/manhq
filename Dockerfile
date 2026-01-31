@@ -1,5 +1,5 @@
 # 1. Base Image: Node 20 (Debian Slim - Leve e Compatível)
-FROM node:20-slim AS base
+FROM node:22-slim AS base
 
 # 2. Instalar dependências do SISTEMA (Obrigatório para PDF e Prisma)
 # - openssl: Necessário para o Prisma

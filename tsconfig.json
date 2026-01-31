@@ -1,18 +1,17 @@
 {
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    "target": "ES2023", // Or the latest supported by your target Node.js version
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2023"], // Matches the target lib
+    "target": "esnext",
+    "module": "nodenext",
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "allowImportingTsExtensions": true, // Allows importing .ts files directly (useful for ts-node during development)
-    "verbatimModuleSyntax": true, // Enforces explicit type imports and correct output file extensions
     "resolveJsonModule": true // Allows importing JSON files
   },
   "include": ["src/**/*.ts"],

@@ -50,15 +50,15 @@ export async function appRoutes(app: Fastify.FastifyInstance) {
     protectedRoutes.get("/series", (req, rep) =>
       libraryCtrl.listSeries(req, rep),
     );
-    protectedRoutes.get("/series/:id", (req, rep) =>
+    protectedRoutes.get("/series/:id", (req: any, rep) =>
       libraryCtrl.getSeriesDetails(req, rep),
     );
 
     // Leitura
-    protectedRoutes.get("/read/:id/info", (req, rep) =>
+    protectedRoutes.get("/read/:id/info", (req: any, rep) =>
       readerCtrl.getChapterInfo(req, rep),
     );
-    protectedRoutes.get("/read/:id/page/:page", (req, rep) =>
+    protectedRoutes.get("/read/:id/page/:page", (req: any, rep) =>
       readerCtrl.getPage(req, rep),
     );
     protectedRoutes.post(
@@ -70,11 +70,11 @@ export async function appRoutes(app: Fastify.FastifyInstance) {
           }),
         },
       },
-      (req, rep) => readerCtrl.updateProgress(req, rep),
+      (req: any, rep) => readerCtrl.updateProgress(req, rep),
     );
 
     // Administração (Upload e Scan)
-    protectedRoutes.post("/upload", (req, rep) =>
+    protectedRoutes.post("/upload", (req: any, rep) =>
       uploadCtrl.uploadFile(req, rep),
     );
     protectedRoutes.post("/upload/bulk", (req, rep) =>
