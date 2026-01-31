@@ -1,9 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import jwt from "jsonwebtoken";
-
-// Em produção, isso deve vir do .env
-const JWT_SECRET = process.env.JWT_SECRET || "mysecretkey";
+import { config } from "../config.ts";
 
 export async function authMiddleware(
   req: Fastify.FastifyRequest,
@@ -20,7 +18,7 @@ export async function authMiddleware(
     const token = authHeader.replace("Bearer ", "");
 
     // Verifica a assinatura do token
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwtSecret);
 
     // Anexa o usuário decodificado na requisição para usarmos nos controllers
     // (Ex: saber quem está lendo para salvar histórico)

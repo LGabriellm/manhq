@@ -11,6 +11,20 @@ const structureCache = new Map<
   string,
   { files: string[]; lastAccess: number }
 >();
+const MAX_CACHE_ENTRIES = 500;
+
+const pruneCache = () => {
+  if (structureCache.size <= MAX_CACHE_ENTRIES) return;
+  let oldestKey: string | null = null;
+  let oldestAccess = Infinity;
+  for (const [key, val] of structureCache.entries()) {
+    if (val.lastAccess < oldestAccess) {
+      oldestAccess = val.lastAccess;
+      oldestKey = key;
+    }
+  }
+  if (oldestKey) structureCache.delete(oldestKey);
+};
 
 // Limpeza automática do cache (1 hora)
 setInterval(() => {
@@ -136,6 +150,7 @@ export class ReaderController {
       a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
     );
     structureCache.set(id, { files, lastAccess: Date.now() });
+    pruneCache();
     return files;
   }
   /**
@@ -157,6 +172,10 @@ export class ReaderController {
         media.path,
         media.extension || "cbz",
       );
+
+      if (media.extension === "pdf" && !pdfLib) {
+        return reply.status(501).send({ error: "Leitor de PDF indisponível" });
+      }
 
       if (media.pageCount !== files.length) {
         await prisma.media.update({
@@ -258,7 +277,10 @@ export class ReaderController {
       }
 
       // === PDF ===
-      else if (media.extension === "pdf" && pdfLib) {
+      else if (media.extension === "pdf") {
+        if (!pdfLib) {
+          return reply.status(501).send("Leitor de PDF indisponível");
+        }
         const doc = await pdfLib.pdf(media.path, { scale: 2.0 });
         let current = 0;
         for await (const image of doc) {
@@ -269,7 +291,10 @@ export class ReaderController {
           current++;
           if (current > pageIndex) break;
         }
+        return reply.status(404).send("Página fora do limite");
       }
+
+      return reply.status(415).send("Formato não suportado");
     } catch (e) {
       console.error(`Erro leitura pagina:`, e);
       return reply.status(500).send("Erro interno");

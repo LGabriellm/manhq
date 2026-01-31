@@ -3,7 +3,7 @@ import path from "path";
 import AdmZip from "adm-zip";
 import { createExtractorFromData } from "node-unrar-js";
 import { parseStringPromise } from "xml2js";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse";
 
 // Interface padronizada para o retorno
 export interface ExtractedMetadata {
@@ -109,14 +109,13 @@ export class MetadataExtractor {
   // --- 4. Extração de PDF ---
   private async fromPDF(filePath: string): Promise<ExtractedMetadata | null> {
     const dataBuffer = fs.readFileSync(filePath);
-    const parser = new PDFParse({ data: dataBuffer });
-    const result = await parser;
-    const data = await result.getInfo();
+    const result = await pdfParse(dataBuffer);
+    const info = result.info;
 
-    if (!data.info) return null;
+    if (!info) return null;
 
-    let title = data.info.Title;
-    const author = data.info.Author;
+    let title = info.Title;
+    const author = info.Author;
 
     // Limpeza básica: Muitos PDFs têm títulos genéricos de quem criou o arquivo
     if (
