@@ -1,5 +1,5 @@
 # 1. Base Image: Node 20 (Debian Slim - Leve e Compatível)
-FROM node:20-slim
+FROM node:20-slim AS base
 
 # 2. Instalar dependências do SISTEMA (Obrigatório para PDF e Prisma)
 # - openssl: Necessário para o Prisma
@@ -12,6 +12,9 @@ RUN apt-get update -y && \
 
 # 3. Definir diretório de trabalho
 WORKDIR /app
+
+# 4. Stage de build
+FROM base AS build
 
 # 4. Copiar arquivos de dependência primeiro (Cache Layer)
 COPY package*.json ./
@@ -30,11 +33,21 @@ COPY . .
 # 8. Compilar o TypeScript para JavaScript (Pasta dist)
 RUN npm run build
 
-# 9. Limpeza (Opcional, mas bom pro i3): Remove libs de desenvolvimento
-# RUN npm prune --production
+# 9. Limpeza: remove dependências de desenvolvimento
+RUN npm prune --omit=dev
 
-# 10. Expor a porta
+# 10. Stage runtime
+FROM base AS runtime
+
+ENV NODE_ENV=production
+
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/dist ./dist
+
+# 11. Expor a porta
 EXPOSE 3000
 
-# 11. Comando para iniciar
+# 12. Comando para iniciar
 CMD ["npm", "start"]

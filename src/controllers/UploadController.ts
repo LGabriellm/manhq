@@ -10,8 +10,21 @@ import { ScannerService } from "../services/Scanner.ts";
 const pump = util.promisify(pipeline);
 const optimizer = new OptimizerService();
 const scanner = new ScannerService();
+const allowedExtensions = new Set([".cbz", ".cbr", ".pdf", ".epub", ".zip"]);
 
 export class UploadController {
+  private normalizeFilename(originalName: string) {
+    const baseName = path.basename(originalName || "upload");
+    const safeName = baseName.replace(/[^\w.\-() ]+/g, "_");
+    const ext = path.extname(safeName).toLowerCase();
+    return { safeName, ext };
+  }
+
+  private createTempPath(safeName: string, ext: string) {
+    const tempName = `${path.parse(safeName).name}-${crypto.randomUUID()}${ext}`;
+    return path.join(process.cwd(), "temp", tempName);
+  }
+
   async uploadFile(req: Fastify.FastifyRequest, reply: Fastify.FastifyReply) {
     // Pega o arquivo do multipart
     const data: any = await req.file();
@@ -20,17 +33,13 @@ export class UploadController {
       return reply.status(400).send({ error: "Nenhum arquivo enviado" });
     }
 
-    const originalName = data.filename ? path.basename(data.filename) : "upload";
-    const safeName = originalName.replace(/[^\w.\-() ]+/g, "_");
-    const ext = path.extname(safeName).toLowerCase();
-    const allowed = new Set([".cbz", ".cbr", ".pdf", ".epub", ".zip"]);
+    const { safeName, ext } = this.normalizeFilename(data.filename);
 
-    if (!allowed.has(ext)) {
+    if (!allowedExtensions.has(ext)) {
       return reply.status(400).send({ error: "Tipo de arquivo não permitido" });
     }
 
-    const tempName = `${path.parse(safeName).name}-${crypto.randomUUID()}${ext}`;
-    const tempPath = path.join(process.cwd(), "temp", tempName);
+    const tempPath = this.createTempPath(safeName, ext);
 
     // Garante pasta temp
     if (!fs.existsSync(path.dirname(tempPath)))
@@ -61,6 +70,60 @@ export class UploadController {
         console.log("✅ Processo concluído:", finalPath);
       } catch (err) {
         console.error("Erro no processamento background:", err);
+      }
+    })();
+  }
+
+  async uploadBulk(req: Fastify.FastifyRequest, reply: Fastify.FastifyReply) {
+    const files = req.files();
+    const queued: Array<{ tempPath: string; safeName: string }> = [];
+    const rejected: Array<{ filename: string; reason: string }> = [];
+
+    for await (const data of files) {
+      const filename = data.filename || "upload";
+      const { safeName, ext } = this.normalizeFilename(filename);
+
+      if (!allowedExtensions.has(ext)) {
+        rejected.push({ filename, reason: "Tipo de arquivo não permitido" });
+        data.file.resume();
+        continue;
+      }
+
+      const tempPath = this.createTempPath(safeName, ext);
+
+      if (!fs.existsSync(path.dirname(tempPath))) {
+        fs.mkdirSync(path.dirname(tempPath), { recursive: true });
+      }
+
+      await pump(data.file, fs.createWriteStream(tempPath));
+      queued.push({ tempPath, safeName });
+    }
+
+    if (queued.length === 0) {
+      return reply.status(400).send({
+        error: "Nenhum arquivo válido enviado",
+        rejected,
+      });
+    }
+
+    reply.status(202).send({
+      message: "Upload recebido! Processamento iniciado em background.",
+      accepted: queued.length,
+      rejected,
+    });
+
+    (async () => {
+      for (const item of queued) {
+        try {
+          console.log("🚀 Iniciando processamento background...");
+          const finalPath = await optimizer.processUpload(
+            item.tempPath,
+            item.safeName,
+          );
+          console.log("✅ Processo concluído:", finalPath);
+        } catch (err) {
+          console.error("Erro no processamento background:", err);
+        }
       }
     })();
   }

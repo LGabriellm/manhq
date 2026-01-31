@@ -1,8 +1,8 @@
 node_modules
 dist
+.git
+.gitignore
+*.log
 temp
 library_data
-.env
-Dockerfile
-docker-compose.yml
-.git
+prisma/data

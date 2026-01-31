@@ -77,6 +77,9 @@ export async function appRoutes(app: Fastify.FastifyInstance) {
     protectedRoutes.post("/upload", (req, rep) =>
       uploadCtrl.uploadFile(req, rep),
     );
+    protectedRoutes.post("/upload/bulk", (req, rep) =>
+      uploadCtrl.uploadBulk(req, rep),
+    );
 
     protectedRoutes.post(
       "/scan",
