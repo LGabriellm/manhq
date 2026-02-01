@@ -6,6 +6,7 @@ import { UploadController } from "./controllers/UploadController.ts";
 import { AuthController } from "./controllers/AuthController.ts"; // Novo
 import { authMiddleware } from "./middlewares/auth.ts"; // Novo
 import { z } from "zod"; // Novo
+import { config } from "./config.ts";
 
 const libraryCtrl = new LibraryController();
 const readerCtrl = new ReaderController();
@@ -81,20 +82,9 @@ export async function appRoutes(app: Fastify.FastifyInstance) {
       uploadCtrl.uploadBulk(req, rep),
     );
 
-    protectedRoutes.post(
-      "/scan",
-      {
-        schema: {
-          body: z.object({
-            path: z.string().min(1, "Caminho é obrigatório"),
-          }),
-        },
-      },
-      async (req, reply) => {
-        const { path } = req.body as { path: string };
-        scannerSvc.scanLibrary(path);
-        return { message: "Scan iniciado." };
-      },
-    );
+    protectedRoutes.post("/scan", async () => {
+      scannerSvc.scanLibrary(config.libraryPath);
+      return { message: "Scan iniciado." };
+    });
   });
 }

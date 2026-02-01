@@ -4,10 +4,11 @@ import AdmZip from "adm-zip";
 import sharp from "sharp";
 import { createExtractorFromData } from "node-unrar-js";
 import { parseFileName } from "../utils/parser.ts";
+import { config } from "../config.ts";
 
 export class OptimizerService {
-  private tempDir = path.join(process.cwd(), "temp");
-  private libraryDir = path.join(process.cwd(), "library_data");
+  private tempDir = config.tempPath;
+  private libraryDir = config.libraryPath;
 
   constructor() {
     if (!fs.existsSync(this.tempDir))

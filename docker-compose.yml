@@ -1,40 +1,19 @@
 services:
   manga-backend:
     container_name: mangahq-backend
-    image: manga-backend:latest
-    build: .
+    image: mangahq-backend:latest
+    build:
+      context: .
+      target: runtime
     restart: unless-stopped
     init: true
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - NODE_OPTIONS=--max-old-space-size=1024
-      - DATABASE_URL=file:/app/data/dev.db
-      - JWT_SECRET=sua_senha_secreta_aqui_mude_isso
-      - CORS_ORIGIN=http://localhost:3000
-      - RATE_LIMIT_MAX=100
-      - RATE_LIMIT_WINDOW=1 minute
-      - BODY_LIMIT_MB=100
-      - FILE_UPLOAD_LIMIT_MB=100
-      # Otimização do Node para o i3
-      - UV_THREADPOOL_SIZE=4
+    env_file: .env
     volumes:
-      # 1. Persistência do Banco de Dados (SQLite)
-      # Mapeia uma pasta do host para dentro do container
-      - ./prisma/data:/app/data
-
-      # 2. Pasta de Entrada (Onde você joga os arquivos brutos)
-      # TROQUE O CAMINHO DA ESQUERDA PELO SEU CAMINHO NO ZIMAOS
-      - /DATA/MeusMangas:/app/library_scan
-
-      # 3. Pasta de Saída (Onde ficam os CBZ otimizados e Capas)
-      # O sistema gerencia isso
-      - ./library_data:/app/library_data
-
-      # 4. Pasta Temporária (Opcional, mas bom mapear para não encher o container)
-      - ./temp:/app/temp
-
+      - ${HOST_DB_PATH}:${DATABASE_DATA_PATH}
+      - ${HOST_LIBRARY_PATH}:${LIBRARY_PATH}
+      - ${HOST_TEMP_PATH}:${TEMP_PATH}
     healthcheck:
       test:
         [
@@ -47,8 +26,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
-
-    # Limite de recursos (Opcional, para não travar o ZimaOS se der louca)
     deploy:
       resources:
         limits:
