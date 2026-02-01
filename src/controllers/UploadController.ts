@@ -6,6 +6,7 @@ import path from "path";
 import crypto from "crypto";
 import { OptimizerService } from "../services/Optimizer.ts";
 import { ScannerService } from "../services/Scanner.ts";
+import { config } from "../config.ts";
 
 const pump = util.promisify(pipeline);
 const optimizer = new OptimizerService();
@@ -22,7 +23,7 @@ export class UploadController {
 
   private createTempPath(safeName: string, ext: string) {
     const tempName = `${path.parse(safeName).name}-${crypto.randomUUID()}${ext}`;
-    return path.join(process.cwd(), "temp", tempName);
+    return path.join(config.tempPath, tempName);
   }
 
   async uploadFile(req: Fastify.FastifyRequest, reply: Fastify.FastifyReply) {

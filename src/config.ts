@@ -8,6 +8,8 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW: z.string().optional(),
   BODY_LIMIT_MB: z.coerce.number().positive().optional(),
   FILE_UPLOAD_LIMIT_MB: z.coerce.number().positive().optional(),
+  LIBRARY_PATH: z.string().min(1, "LIBRARY_PATH é obrigatório."),
+  TEMP_PATH: z.string().min(1, "TEMP_PATH é obrigatório."),
 });
 
 const env = envSchema.parse(process.env);
@@ -27,4 +29,6 @@ export const config = {
   },
   bodyLimit: (env.BODY_LIMIT_MB ?? 100) * 1024 * 1024,
   fileUploadLimit: (env.FILE_UPLOAD_LIMIT_MB ?? 100) * 1024 * 1024,
+  libraryPath: env.LIBRARY_PATH,
+  tempPath: env.TEMP_PATH,
 };
