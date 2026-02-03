@@ -60,8 +60,13 @@ app.setErrorHandler((error: any, request, reply) => {
 
 const start = async () => {
   try {
-    await app.listen({ port: 3000 });
-    console.log("🚀 Servidor rodando em http://localhost:3000");
+    await app.listen({ port: 3000, host: "0.0.0.0" }, (err, address) => {
+      if (err) {
+        app.log.error(err);
+        process.exit(1);
+      }
+      app.log.info(`Servidor rodando em ${address}`);
+    });
   } catch (err) {
     app.log.error(err);
     process.exit(1);
